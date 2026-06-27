@@ -1,9 +1,12 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 import { runMigrations } from './db/index.js';
@@ -113,7 +116,6 @@ const authLimiter = rateLimit({
 const corsOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  /\.vercel\.app$/,
 ];
 if (process.env.CORS_ORIGIN) {
   corsOrigins.push(process.env.CORS_ORIGIN);
@@ -140,6 +142,30 @@ app.use('/api/dashboard', dashboardRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), clients: clients.size });
 });
+
+// ─── Serve Frontend (Production) ──────────────────────────────────────────────
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = (() => {
+  const candidates = [
+    process.env.PUBLIC_DIR,
+    path.join(__dirname, 'public'),
+    path.join(__dirname, '..', 'frontend', 'dist'),
+  ];
+  for (const dir of candidates) {
+    if (dir && fs.existsSync(dir)) return dir;
+  }
+  return candidates[1];
+})();
+
+if (process.env.NODE_ENV === 'production' && fs.existsSync(publicDir)) {
+  console.log(`📁 Serving frontend from ${publicDir}`);
+  app.use(express.static(publicDir));
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(publicDir, 'index.html'));
+    }
+  });
+}
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 app.use(notFound);
