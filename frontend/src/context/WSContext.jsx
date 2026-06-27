@@ -11,8 +11,11 @@ export const WSProvider = ({ children }) => {
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}`;
-    
+    const url = import.meta.env.VITE_WS_URL ||
+      (import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/^http/, 'ws')
+        : `${protocol}//${window.location.host}/ws`);
+
     try {
       wsRef.current = new WebSocket(url);
 

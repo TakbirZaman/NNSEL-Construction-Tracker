@@ -19,6 +19,9 @@
     "pg": "^8.11.3",
     "ws": "^8.16.0"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "nodemon": "^3.0.2"
   }
